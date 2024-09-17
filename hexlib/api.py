@@ -3,11 +3,9 @@ import enum
 import re
 import time
 import typing
-import urllib
 
 import aiohttp
 import cachetools
-from cachetools import TTLCache, cached
 from loguru import logger
 from pydantic import BaseModel
 
@@ -56,8 +54,6 @@ class API(SessionContainerMixin):
         self._method_name = ""
         self._requests_delay = 1 / 20
         self._last_request_timestamp = 0.0
-        self._use_cache: bool = False
-        self._cache_table = cache_table or TTLCache(ttl=7200, maxsize=2**12)
 
         self._stable_request_params = {
             "access_token": self._token,
@@ -75,7 +71,7 @@ class API(SessionContainerMixin):
     async def determine_the_type_of_owner(self):
         if self._owner_type != OwnerType.NOBODY and self._owner_schema is not None:
             return self._token_owner, self._owner_schema
-        owner_schema = await self.use_cache().method("users.get")
+        owner_schema = await self.method("users.get")
         if owner_schema:
             self._owner_schema = User(owner_schema[0])
             self._owner_type = OwnerType.USER
@@ -93,36 +89,18 @@ class API(SessionContainerMixin):
         else:
             self._requests_delay = 1 / 20
 
-    @cached(cache=TTLCache(maxsize=100, ttl=60 * 5))
     async def method(self, method_name: str, **request_params) -> typing.Any:
-        use_cache = self._use_cache
-        self._use_cache = False
         return await self._make_api_request(
-            method_name=method_name,
-            request_params=request_params,
-            use_cache=use_cache,
+            method_name=method_name, request_params=request_params
         )
 
     async def _make_api_request(
-        self,
-        method_name: str,
-        request_params: typing.Dict[str, typing.Any],
-        use_cache: bool,
+        self, method_name: str, request_params: typing.Dict[str, typing.Any]
     ) -> typing.Any:
         real_method_name = _convert_method_name(method_name)
         real_request_params = _convert_params_for_api(request_params)
         extra_request_params = self._stable_request_params.copy()
         extra_request_params.update(real_request_params)
-
-        if use_cache:
-            cache_hash = urllib.parse.urlencode(real_request_params)
-            cache_hash = f"{method_name}#{cache_hash}"
-            if cache_hash in self._cache_table:
-                logger.error(
-                    f"Using cached response for {method_name}",
-                    method_name=method_name,
-                )
-                return self._cache_table[cache_hash]
 
         api_request_delay = self._get_waiting_time()
         await asyncio.sleep(api_request_delay)
@@ -144,12 +122,9 @@ class API(SessionContainerMixin):
         else:
             response = response.response
 
-        if use_cache:
-            self._cache_table[cache_hash] = response
-
         return response
 
-    async def _send_api_request(self, method_name: str, params: dict) -> dict:
+    async def _send_api_request(self, method_name: str, params: dict) -> typing.Any:
         while True:
             try:
                 async with self.requests_session.post(
