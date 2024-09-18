@@ -157,11 +157,6 @@ class UsersGet(BaseModel):
     is_closed: Optional[bool] = None
 
 
-class UsersGetFollowers(BaseModel):
-    count: Optional[int] = None
-    items: Optional[List[Union[UsersGet, int]]] = None
-
-
 class SubsctiotionsItem(BaseModel):
     count: Optional[int] = None
     items: Optional[List[Union[UsersGet, int]]] = None
