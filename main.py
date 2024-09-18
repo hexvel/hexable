@@ -14,7 +14,7 @@ load_dotenv()
 async def main():
     api = API(token=os.getenv("TOKEN"))
 
-    res = await api.users.search(city_id=1)
+    res = await api.users.get_followers(user_id=1)
     logger.debug(res)
 
     await api.close_session()

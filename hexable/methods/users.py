@@ -20,7 +20,9 @@ class Users(BaseCategory):
         from_group_id: typing.Optional[int] = None,
     ) -> list["UsersGet"]:
         params = self.get_params_from_locals(locals())
-        return await self.call_api_iter("users.get", UsersGet, **params)
+
+        response = await self._api.method("users.get", **params)
+        return [UsersGet(**item) for item in response]
 
     async def get_followers(
         self,
@@ -30,7 +32,9 @@ class Users(BaseCategory):
         fields: typing.Optional[str] = None,
     ) -> "UsersItem":
         params = self.get_params_from_locals(locals())
-        return await self.call_api("users.getFollowers", UsersItem, **params)
+
+        response = await self._api.method("users.getFollowers", **params)
+        return UsersItem(**response)
 
     async def get_subscriptions(
         self,
@@ -41,9 +45,9 @@ class Users(BaseCategory):
         fields: typing.Optional[str] = None,
     ) -> "UsersGetSubscriptions":
         params = self.get_params_from_locals(locals())
-        return await self.call_api(
-            "users.getSubscriptions", UsersGetSubscriptions, **params
-        )
+
+        response = await self._api.method("users.getSubscriptions", **params)
+        return UsersGetSubscriptions(**response)
 
     async def report(
         self,
@@ -52,7 +56,9 @@ class Users(BaseCategory):
         comment: typing.Optional[str] = None,
     ) -> int:
         params = self.get_params_from_locals(locals())
-        return await self._api.method("users.report", **params)
+
+        response = self._api.method("users.report", **params)
+        return response
 
     async def search(
         self,
@@ -94,4 +100,6 @@ class Users(BaseCategory):
         university_year: typing.Optional[int] = None,
     ) -> "UsersItem":
         params = self.get_params_from_locals(locals())
-        return await self.call_api("users.search", UsersItem, **params)
+
+        response = await self._api.method("users.search", **params)
+        return UsersItem(**response)

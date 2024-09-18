@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import abc
 import contextlib
 import ssl
 import typing
@@ -7,9 +8,10 @@ import typing
 import aiohttp
 
 from hexable.json_parsers import BaseJSONParser, json_parser_policy
+from hexable.types.hexable_types.categories import APICategories
 
 
-class SessionContainerMixin:
+class SessionContainerMixin(APICategories, abc.ABC):
     def __init__(
         self,
         *,

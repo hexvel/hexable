@@ -6,18 +6,15 @@ import typing
 
 import aiohttp
 from loguru import logger
-from pydantic import BaseModel
 
-from hexable.base.api_serialize import APISerializableMixin
-from hexable.base.json_parser import BaseJSONParser
-from hexable.base.pages import User
 from hexable.base.session_container import SessionContainerMixin
 from hexable.exceptions import APIError
-from hexable.json_parsers import json_parser_policy
-from hexable.methods.users import Users
-from hexable.pretty_view import pretty_view
+from hexable.types.hexable_types.base_model import BaseModel, Field
 
-logger.enable("hexable")
+
+class APIResponse(BaseModel):
+    response: typing.Optional[typing.Any] = Field(None)
+    error: typing.Optional[str] = Field(None)
 
 
 @enum.unique
@@ -27,86 +24,47 @@ class OwnerType(enum.Enum):
     NOBODY = enum.auto()
 
 
-class APIResponse(BaseModel):
-    response: typing.Optional[typing.Any] = None
-    error: typing.Optional[dict] = None
-
-
 class API(SessionContainerMixin):
     def __init__(
         self,
         token: str,
         version: str = "5.199",
-        url: str = "https://api.vk.com/method/",
-        requests_session: typing.Optional[aiohttp.ClientSession] = None,
-        json_parser: typing.Optional[BaseJSONParser] = None,
+        api_url: str = "https://api.vk.com/method/",
+        session: typing.Optional[aiohttp.ClientSession] = None,
     ) -> None:
-        SessionContainerMixin.__init__(
-            self, requests_session=requests_session, json_parser=json_parser
-        )
-
+        super().__init__(requests_session=session)
         self._token = token
         self._version = version
-        self._url = url
-        self._owner_schema: typing.Optional[typing.Union[User]] = None
-        self._owner_type: OwnerType = OwnerType.NOBODY
-
-        self._method_name = ""
+        self._api_url = api_url
         self._requests_delay = 1 / 20
+        self._owner_type = OwnerType.NOBODY
         self._last_request_timestamp = 0.0
-
-        self._stable_request_params = {
-            "access_token": self._token,
-            "v": self._version,
-        }
-
-    @property
-    def users(self) -> "Users":
-        return Users(self)
-
-    async def determine_the_type_of_owner(self):
-        if self._owner_type != OwnerType.NOBODY and self._owner_schema is not None:
-            return self._owner_type, self._owner_schema
-        owner_schema = await self.method("users.get")
-        if owner_schema:
-            self._owner_schema = User(owner_schema[0])
-            self._owner_type = OwnerType.USER
-        # else:
-        #     owner_schema = await self.use_cache().method("groups.get_by_id")
-        #     self._owner_schema = Group(owner_schema[0])
-        #     self._owner_type = OwnerType.GROUP
+        self._stable_request_params = {"access_token": self._token, "v": self._version}
 
         self._update_requests_delay()
-        return self._owner_type, self._owner_schema
+        
+    @property
+    def api_instance(self) -> typing.Self:
+        return self
 
     def _update_requests_delay(self) -> None:
-        if self._token in {OwnerType.USER, OwnerType.NOBODY}:
-            self._requests_delay = 1 / 3
-        else:
-            self._requests_delay = 1 / 20
+        self._requests_delay = 1 / 3 if self._owner_type == OwnerType.USER else 1 / 20
 
-    async def method(self, method_name: str, **request_params) -> typing.Any:
-        return await self._make_api_request(
-            method_name=method_name, request_params=request_params
+    async def method(self, method_name: str, request_params) -> typing.Any:
+        method_name = re.sub(
+            r"_(?P<let>[a-z])", lambda m: m.group("let").upper(), method_name
         )
+        extra_request_params = {
+            **self._stable_request_params,
+            **request_params,
+        }
 
-    async def _make_api_request(
-        self, method_name: str, request_params: typing.Dict[str, typing.Any]
-    ) -> typing.Any:
-        real_method_name = _convert_method_name(method_name)
-        real_request_params = _convert_params_for_api(request_params)
-        extra_request_params = self._stable_request_params.copy()
-        extra_request_params.update(real_request_params)
+        await asyncio.sleep(self._get_waiting_time())
+        response = await self._make_api_request(method_name, extra_request_params)
 
-        api_request_delay = self._get_waiting_time()
-        await asyncio.sleep(api_request_delay)
-
-        response = await self._send_api_request(real_method_name, extra_request_params)
-        response = APIResponse.model_validate(response)
-
-        if response.error:
+        if "error" in response:
             await self.close_session()
-            error = response.error.copy()
+            error = response["error"].copy()
             exception_class = APIError[error["error_code"]][0]
             raise exception_class(
                 status_code=error.pop("error_code"),
@@ -114,38 +72,29 @@ class API(SessionContainerMixin):
                 request_params=error.pop("request_params"),
                 extra_fields=error,
             )
-        else:
-            response = response.response
 
-        logger.debug("Response is: {response}", response=pretty_view(response))
+        logger.debug("New response: {response}", response=response)
         return response
 
-    async def _send_api_request(self, method_name: str, params: dict) -> typing.Any:
+    async def _make_api_request(self, method: str, params: dict) -> typing.Any:
         while True:
             try:
                 async with self.requests_session.post(
-                    self._url + method_name, data=params
+                    self._api_url + method, data=params
                 ) as response:
-                    response = await self.parse_json_body(response)
-                    if "error" in response and response["error"]["error_code"] == 10:
+                    parsed_response = await self.parse_json_body(response)
+                    if parsed_response.get("error", {}).get("error_code") == 10:
                         logger.warning(
-                            "VK Internal server error occured while calling {method_name} ({params}): {"
-                            "error_message}. Retrying in 10 seconds...",
-                            method_name=method_name,
-                            params=params,
-                            error_message=response["error"]["error_msg"],
+                            f"VK Internal server error while calling {method} ({params}). "
+                            "Retrying in 10 seconds..."
                         )
                         await asyncio.sleep(10)
                     else:
-                        return response
+                        return parsed_response
             except aiohttp.ClientResponseError as error:
                 if error.status >= 500:
                     logger.warning(
-                        "VK Internal server error occured while calling {method_name} ({params}): {error_message}. "
-                        "Retrying in 10 seconds...",
-                        method_name=method_name,
-                        params=params,
-                        error_message=response["error"]["error_msg"],
+                        f"Server error {error.status}. Retrying in 10 seconds..."
                     )
                     await asyncio.sleep(10)
                 else:
@@ -155,47 +104,6 @@ class API(SessionContainerMixin):
 
     def _get_waiting_time(self) -> float:
         now = time.time()
-        diff = now - self._last_request_timestamp
-        if diff < self._requests_delay:
-            wait_time = self._requests_delay - diff
-            self._last_request_timestamp += wait_time
-            return wait_time
-        else:
-            self._last_request_timestamp = now
-            return 0.0
-
-
-def _upper_zero_group(match: typing.Match, /) -> str:
-    return match.group("let").upper()
-
-
-def _convert_method_name(name: str, /) -> str:
-    return re.sub(r"_(?P<let>[a-z])", _upper_zero_group, name)
-
-
-def _convert_param_value(value, /):
-    if isinstance(value, (list, set, tuple)):
-        updated_sequence = map(_convert_param_value, value)
-        return ",".join(updated_sequence)
-
-    elif isinstance(value, dict):
-        return json_parser_policy.dumps(value)
-
-    elif isinstance(value, bool):
-        return int(value)
-
-    elif isinstance(value, APISerializableMixin):
-        new_value = value.represent_as_api_param()
-        return _convert_param_value(new_value)
-
-    else:
-        return str(value)
-
-
-def _convert_params_for_api(params: dict, /):
-    updated_params = {
-        key: _convert_param_value(value)
-        for key, value in params.items()
-        if value is not None
-    }
-    return updated_params
+        wait_time = max(0, self._requests_delay - (now - self._last_request_timestamp))
+        self._last_request_timestamp = now + wait_time
+        return wait_time
