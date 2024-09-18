@@ -1,4 +1,4 @@
-from typing import List, Optional, Literal
+from typing import List, Optional, Literal, Union
 
 from pydantic import BaseModel
 
@@ -155,3 +155,18 @@ class UsersGet(BaseModel):
     last_name: Optional[str] = None
     can_access_closed: Optional[bool] = None
     is_closed: Optional[bool] = None
+
+
+class UsersGetFollowers(BaseModel):
+    count: Optional[int] = None
+    items: Optional[List[Union[UsersGet, int]]] = None
+
+
+class SubsctiotionsItem(BaseModel):
+    count: Optional[int] = None
+    items: Optional[List[Union[UsersGet, int]]] = None
+
+
+class UsersGetSubscriptions(BaseModel):
+    users: Optional[SubsctiotionsItem] = None
+    groups: Optional[SubsctiotionsItem] = None

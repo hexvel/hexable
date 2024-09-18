@@ -1,7 +1,7 @@
 import typing
 
 from hexable.base.category import BaseCategory
-from hexable.models.users import UsersGet
+from hexable.models.users import UsersGet, UsersGetFollowers, UsersGetSubscriptions
 
 if typing.TYPE_CHECKING:
     from hexable.api import API
@@ -18,26 +18,32 @@ class Users(BaseCategory):
         fields: typing.Optional[str] = None,
         name_case: typing.Optional[str] = None,
         from_group_id: typing.Optional[int] = None,
-    ) -> list[UsersGet]:
+    ) -> list["UsersGet"]:
         params = self.get_params_from_locals(locals())
-        return await self.call_api("users.get", UsersGet, **params)
+        return await self.call_api_iter("users.get", UsersGet, **params)
 
     async def get_followers(
-        self, user_id: int, offset: int = 0, count: int = 100, fields: str = ""
-    ) -> list[dict]:
+        self,
+        user_id: int,
+        offset: typing.Optional[int] = None,
+        count: typing.Optional[int] = None,
+        fields: typing.Optional[str] = None,
+    ) -> "UsersGetFollowers":
         params = self.get_params_from_locals(locals())
-        return await self._api.method("users.getFollowers", **params)
+        return await self.call_api("users.getFollowers", UsersGetFollowers, **params)
 
     async def get_subscriptions(
         self,
         user_id: int,
-        extended: typing.Optional[int] = 0,
-        offset: typing.Optional[int] = 0,
-        count: int = 100,
-        fields: typing.Optional[str] = "",
-    ) -> list[dict]:
+        extended: typing.Optional[int] = None,
+        offset: typing.Optional[int] = None,
+        count: typing.Optional[int] = None,
+        fields: typing.Optional[str] = None,
+    ) -> "UsersGetSubscriptions":
         params = self.get_params_from_locals(locals())
-        return await self._api.method("users.getSubscriptions", **params)
+        return await self.call_api(
+            "users.getSubscriptions", UsersGetSubscriptions, **params
+        )
 
     async def report(
         self,
