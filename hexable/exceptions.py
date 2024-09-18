@@ -1,11 +1,50 @@
 from __future__ import annotations
 
 import dataclasses
+import os
 import typing
 
+import pretty_errors
 import typing_extensions as tye
 
 exceptions_storage: typing.Dict[int, typing.Type[APIError]] = {}
+
+pretty_errors.configure(
+    separator_character="#",
+    display_timestamp=True,
+    filename_display=pretty_errors.default_config.exception_color,
+    line_number_first=True,
+    display_link=True,
+    lines_before=5,
+    lines_after=2,
+    line_color=pretty_errors.RED + "> " + pretty_errors.default_config.line_color,
+    code_color="  " + pretty_errors.default_config.exception_color,
+    truncate_code=True,
+    display_locals=True,
+)
+
+
+class ExceptionWriter(pretty_errors.ExceptionWriter):
+    def write_header(self):
+        padding_symbol = "#"
+        error_text = " API ERROR "
+        terminal_width = os.get_terminal_size().columns
+        total_length = len(error_text)
+        padding_needed = (terminal_width - total_length) // 2
+        centered_message = (
+            pretty_errors.RED
+            + (padding_symbol * padding_needed)
+            + error_text
+            + (padding_symbol * padding_needed)
+        )
+
+        if len(centered_message) < terminal_width:
+            centered_message += padding_symbol
+
+        self.output_text(pretty_errors.RED + centered_message)
+
+
+pretty_errors.exception_writer = ExceptionWriter()
 
 
 class _ParamsScheme(tye.TypedDict):
@@ -21,7 +60,7 @@ class APIError(Exception):
     extra_fields: dict
 
     def __class_getitem__(
-            cls, code: typing.Union[int, typing.Tuple[int, Ellipsis]]
+        cls, code: typing.Union[int, typing.Tuple[int, Ellipsis]]
     ) -> typing.Tuple[typing.Type[APIError]]:
         result_classes = []
         codes = (code,) if isinstance(code, int) else code

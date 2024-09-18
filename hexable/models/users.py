@@ -157,11 +157,11 @@ class UsersGet(BaseModel):
     is_closed: Optional[bool] = None
 
 
-class SubsctiotionsItem(BaseModel):
+class UsersItem(BaseModel):
     count: Optional[int] = None
     items: Optional[List[Union[UsersGet, int]]] = None
 
 
 class UsersGetSubscriptions(BaseModel):
-    users: Optional[SubsctiotionsItem] = None
-    groups: Optional[SubsctiotionsItem] = None
+    users: Optional[UsersItem] = None
+    groups: Optional[UsersItem] = None

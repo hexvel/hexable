@@ -1,7 +1,7 @@
 import typing
 
 from hexable.base.category import BaseCategory
-from hexable.models.users import UsersGet, UsersGetFollowers, UsersGetSubscriptions
+from hexable.models.users import UsersGet, UsersGetSubscriptions, UsersItem
 
 if typing.TYPE_CHECKING:
     from hexable.api import API
@@ -28,9 +28,9 @@ class Users(BaseCategory):
         offset: typing.Optional[int] = None,
         count: typing.Optional[int] = None,
         fields: typing.Optional[str] = None,
-    ) -> "UsersGetFollowers":
+    ) -> "UsersItem":
         params = self.get_params_from_locals(locals())
-        return await self.call_api("users.getFollowers", UsersGetFollowers, **params)
+        return await self.call_api("users.getFollowers", UsersItem, **params)
 
     async def get_subscriptions(
         self,
@@ -48,9 +48,9 @@ class Users(BaseCategory):
     async def report(
         self,
         user_id: int,
-        type: typing.Optional[str] = None,
+        type: typing.Literal["porn", "spam", "insult", "advertisement"] = None,
         comment: typing.Optional[str] = None,
-    ) -> bool:
+    ) -> int:
         params = self.get_params_from_locals(locals())
         return await self._api.method("users.report", **params)
 

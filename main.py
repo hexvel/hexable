@@ -14,12 +14,8 @@ load_dotenv()
 async def main():
     api = API(token=os.getenv("TOKEN"))
 
-    res = await api.users.get_subscriptions(user_id=715616525)
-
+    res = await api.users.report(user_id=1, type="insult")
     logger.debug(res)
-
-    for r in res.users.items:
-        print(r)
 
     await api.close_session()
 

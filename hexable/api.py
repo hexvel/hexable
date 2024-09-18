@@ -103,9 +103,8 @@ class API(SessionContainerMixin):
 
         response = await self._send_api_request(real_method_name, extra_request_params)
         response = APIResponse.model_validate(response)
-        logger.debug("Response is: {response}", response=pretty_view(response.response))
 
-        if "error" in response:
+        if response.error:
             await self.close_session()
             error = response.error.copy()
             exception_class = APIError[error["error_code"]][0]
@@ -117,6 +116,8 @@ class API(SessionContainerMixin):
             )
         else:
             response = response.response
+
+        logger.debug("Response is: {response}", response=pretty_view(response))
         return response
 
     async def _send_api_request(self, method_name: str, params: dict) -> typing.Any:
