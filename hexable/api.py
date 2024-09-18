@@ -8,14 +8,16 @@ import aiohttp
 from loguru import logger
 from pydantic import BaseModel
 
-from hexlib.base.api_serialize import APISerializableMixin
-from hexlib.base.json_parser import BaseJSONParser
-from hexlib.base.pages import User
-from hexlib.base.session_container import SessionContainerMixin
-from hexlib.exceptions import APIError
-from hexlib.json_parsers import json_parser_policy
-from hexlib.methods.users import Users
-from hexlib.pretty_view import pretty_view
+from hexable.base.api_serialize import APISerializableMixin
+from hexable.base.json_parser import BaseJSONParser
+from hexable.base.pages import User
+from hexable.base.session_container import SessionContainerMixin
+from hexable.exceptions import APIError
+from hexable.json_parsers import json_parser_policy
+from hexable.methods.users import Users
+from hexable.pretty_view import pretty_view
+
+logger.enable("hexable")
 
 
 @enum.unique

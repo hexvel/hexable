@@ -6,7 +6,7 @@ import typing
 
 import aiohttp
 
-from hexlib.json_parsers import BaseJSONParser, json_parser_policy
+from hexable.json_parsers import BaseJSONParser, json_parser_policy
 
 
 class SessionContainerMixin:

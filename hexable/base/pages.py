@@ -3,7 +3,7 @@ from __future__ import annotations
 import abc
 import typing
 
-from hexlib.base.wrapper import BaseWrapper
+from hexable.base.wrapper import BaseWrapper
 
 FieldsTypevar = typing.TypeVar("FieldsTypevar")
 

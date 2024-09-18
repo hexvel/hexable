@@ -1,7 +1,7 @@
 import json
 import typing
 
-from hexlib.base.json_parser import BaseJSONParser
+from hexable.base.json_parser import BaseJSONParser
 
 
 class BuiltinJsonParser(BaseJSONParser):

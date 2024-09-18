@@ -1,14 +1,15 @@
 import typing
 
-from hexlib.base.category import BaseCategory
-from hexlib.models.users import UsersGet
+from hexable.base.category import BaseCategory
+from hexable.models.users import UsersGet
 
 if typing.TYPE_CHECKING:
-    from hexlib.api import API
+    from hexable.api import API
 
 
 class Users(BaseCategory):
     def __init__(self, api: "API") -> None:
+        super().__init__(api)
         self._api = api
 
     async def get(
@@ -19,9 +20,7 @@ class Users(BaseCategory):
         from_group_id: typing.Optional[int] = None,
     ) -> list[UsersGet]:
         params = self.get_params_from_locals(locals())
-        response = await self._api.method("users.get", **params)
-        users_get_list = [UsersGet(**user) for user in response]
-        return users_get_list
+        return await self.call_api("users.get", UsersGet, **params)
 
     async def get_followers(
         self, user_id: int, offset: int = 0, count: int = 100, fields: str = ""
