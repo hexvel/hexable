@@ -3,22 +3,7 @@ from __future__ import annotations
 import dataclasses
 import typing
 
-# import pretty_errors
 import typing_extensions as tye
-
-# pretty_errors.configure(
-#     separator_character="*",
-#     filename_display=pretty_errors.FILENAME_EXTENDED,
-#     line_number_first=True,
-#     display_link=True,
-#     lines_before=5,
-#     lines_after=2,
-#     line_color=pretty_errors.RED + "> " + pretty_errors.default_config.line_color,
-#     code_color="  " + pretty_errors.default_config.line_color,
-#     truncate_code=True,
-#     display_locals=True,
-#     prefix="HEXLib",
-# )
 
 exceptions_storage: typing.Dict[int, typing.Type[APIError]] = {}
 
@@ -36,7 +21,7 @@ class APIError(Exception):
     extra_fields: dict
 
     def __class_getitem__(
-        cls, code: typing.Union[int, typing.Tuple[int, ...]]
+            cls, code: typing.Union[int, typing.Tuple[int, Ellipsis]]
     ) -> typing.Tuple[typing.Type[APIError]]:
         result_classes = []
         codes = (code,) if isinstance(code, int) else code
@@ -52,4 +37,7 @@ class APIError(Exception):
         return tuple(result_classes)
 
     def __str__(self) -> str:
+        return self.description
+
+    def __repr__(self) -> str:
         return self.description

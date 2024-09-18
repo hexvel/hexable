@@ -5,7 +5,6 @@ import time
 import typing
 
 import aiohttp
-import cachetools
 from loguru import logger
 from pydantic import BaseModel
 
@@ -28,7 +27,7 @@ class OwnerType(enum.Enum):
 
 class APIResponse(BaseModel):
     response: typing.Optional[typing.Any] = None
-    error: typing.Optional[APIError] = None
+    error: typing.Optional[dict] = None
 
 
 class API(SessionContainerMixin):
@@ -39,7 +38,6 @@ class API(SessionContainerMixin):
         url: str = "https://api.vk.com/method/",
         requests_session: typing.Optional[aiohttp.ClientSession] = None,
         json_parser: typing.Optional[BaseJSONParser] = None,
-        cache_table: typing.Optional[cachetools.Cache] = None,
     ) -> None:
         SessionContainerMixin.__init__(
             self, requests_session=requests_session, json_parser=json_parser
@@ -64,13 +62,9 @@ class API(SessionContainerMixin):
     def users(self) -> "Users":
         return Users(self)
 
-    def use_cache(self) -> "API":
-        self._use_cache = True
-        return self
-
     async def determine_the_type_of_owner(self):
         if self._owner_type != OwnerType.NOBODY and self._owner_schema is not None:
-            return self._token_owner, self._owner_schema
+            return self._owner_type, self._owner_schema
         owner_schema = await self.method("users.get")
         if owner_schema:
             self._owner_schema = User(owner_schema[0])
@@ -121,7 +115,6 @@ class API(SessionContainerMixin):
             )
         else:
             response = response.response
-
         return response
 
     async def _send_api_request(self, method_name: str, params: dict) -> typing.Any:
@@ -133,7 +126,8 @@ class API(SessionContainerMixin):
                     response = await self.parse_json_body(response)
                     if "error" in response and response["error"]["error_code"] == 10:
                         logger.warning(
-                            "VK Internal server error occured while calling {method_name} ({params}): {error_message}. Retrying in 10 seconds...",
+                            "VK Internal server error occured while calling {method_name} ({params}): {"
+                            "error_message}. Retrying in 10 seconds...",
                             method_name=method_name,
                             params=params,
                             error_message=response["error"]["error_msg"],
@@ -144,7 +138,8 @@ class API(SessionContainerMixin):
             except aiohttp.ClientResponseError as error:
                 if error.status >= 500:
                     logger.warning(
-                        "VK Internal server error occured while calling {method_name} ({params}): {error_message}. Retrying in 10 seconds...",
+                        "VK Internal server error occured while calling {method_name} ({params}): {error_message}. "
+                        "Retrying in 10 seconds...",
                         method_name=method_name,
                         params=params,
                         error_message=response["error"]["error_msg"],

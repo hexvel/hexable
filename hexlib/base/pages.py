@@ -13,9 +13,11 @@ class ABCPage(BaseWrapper, abc.ABC):
     _mention_prefix: str
 
     @property
+    @abc.abstractmethod
     def fullname(self) -> str: ...
 
     @property
+    @abc.abstractmethod
     def id(self) -> int: ...
 
     def mention(self, alias: typing.Optional[str] = None) -> str:
@@ -48,16 +50,16 @@ class User(ABCPage, typing.Generic[FieldsTypevar]):
 
     @property
     def fullname(self) -> str:
-        return f"{self.fields['first_name']} {self.fields['last_name']}"
+        return f"{self._rows['first_name']} {self._rows['last_name']}"
 
     @property
     def id(self) -> int:
-        return self.fields["id"]
+        return self._rows["id"]
 
     @property
     def first_name(self) -> str:
-        return self.fields["first_name"]
+        return self._rows["first_name"]
 
     @property
     def last_name(self) -> str:
-        return self.fields["last_name"]
+        return self._rows["last_name"]
