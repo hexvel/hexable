@@ -60,7 +60,7 @@ class APIError(Exception):
     extra_fields: dict
 
     def __class_getitem__(
-        cls, code: typing.Union[int, typing.Tuple[int, Ellipsis]]
+        cls, code: typing.Union[int, typing.Tuple[int, ...]]
     ) -> typing.Tuple[typing.Type[APIError]]:
         result_classes = []
         codes = (code,) if isinstance(code, int) else code
