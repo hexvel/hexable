@@ -92,6 +92,6 @@ class Users(BaseCategory):
         university_country: typing.Optional[int] = None,
         university_faculty: typing.Optional[int] = None,
         university_year: typing.Optional[int] = None,
-    ) -> typing.List[str]:
+    ) -> "UsersItem":
         params = self.get_params_from_locals(locals())
-        return await self._api.method("users.search", **params)
+        return await self.call_api("users.search", UsersItem, **params)

@@ -93,6 +93,7 @@ class UsersGet(BaseModel):
     bdate: Optional[str] = None
     city: Optional[CityModel] = None
     timezone: Optional[float] = None
+    track_code: Optional[str] = None
     photo_50: Optional[str] = None
     photo_100: Optional[str] = None
     photo_200: Optional[str] = None
