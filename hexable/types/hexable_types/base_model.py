@@ -1,5 +1,5 @@
 # type: ignore
-import typing_extensions as typing
+import typing
 
 try:
     import pydantic.v1 as pydantic  # type: ignore
@@ -42,4 +42,4 @@ if typing.TYPE_CHECKING:
 Field = pydantic.Field
 
 
-__all__ = ("BaseModel",)
+__all__ = ("BaseModel", "Field")
